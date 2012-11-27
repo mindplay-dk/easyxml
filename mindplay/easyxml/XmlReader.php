@@ -47,6 +47,9 @@ class XmlReader extends XmlHandler
         // skip whitespace-only values
         xml_parser_set_option($parser, XML_OPTION_SKIP_WHITE, $this->skip_white);
 
+        // disable case-folding - read XML element/attribute names as-is:
+        xml_parser_set_option($parser, XML_OPTION_CASE_FOLDING, false);
+
         xml_set_element_handler($parser, array($this, 'onStartElement'), array($this, 'onEndElement'));
 
         xml_set_character_data_handler($parser, array($this, 'onCharacterData'));
