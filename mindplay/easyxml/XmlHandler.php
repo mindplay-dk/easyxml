@@ -68,45 +68,24 @@ class XmlHandler implements ArrayAccess
 
     /**
      * @param string $name
-     * @param string $attr
+     * @param array $values hash where parameter name => value
      * @return XmlHandler|null
-     * @throws RuntimeException if function requires a missing attribute
      */
-    public function startElement($name, $attr)
+    private function dispatchFunction($name, $values=array())
     {
-        /**
-         * @var Closure $function
-         */
-
-        #echo '<pre>[HANDLING '.$name.']</pre>';
-
         if (!isset($this->functions[$name])) {
             return null; // no handler for this element
         }
 
         $function = $this->functions[$name];
 
-        $norm_name = strtr($name, '-.:', '___');
-
         $reflection = new ReflectionFunction($function);
 
-        $params = array();
+        $norm_name = strtr($name, '-.:', '___');
 
         $return = null;
 
-        if (count($attr) !== 0) {
-            $norm_attr = array_combine(
-                array_map(
-                    function ($key) {
-                        return strtr($key, '-.:', '___');
-                    },
-                    array_keys($attr)
-                ),
-                array_values($attr)
-            );
-        } else {
-            $norm_attr = array();
-        }
+        $params = array();
 
         foreach ($reflection->getParameters() as $index => $param) {
             $param_name = $param->getName();
@@ -115,10 +94,11 @@ class XmlHandler implements ArrayAccess
                 $params[0] = new XmlHandler();
                 $return = $params[0];
             } else {
-                if (array_key_exists($param_name, $norm_attr)) {
-                    $params[$index] = $norm_attr[$param_name];
+                if (array_key_exists($param_name, $values)) {
+                    $params[$index] = $values[$param_name];
                 } else if ($param->isOptional() === false) {
-                    throw new RuntimeException("required attribute $param_name not found");
+                    $func_def = 'function defined in ' . $reflection->getFileName() . ' at line ' . $reflection->getStartLine();
+                    throw new RuntimeException("unable to satisfy required argument $param_name for $func_def");
                 }
             }
         }
@@ -126,6 +106,37 @@ class XmlHandler implements ArrayAccess
         call_user_func_array($function, $params);
 
         return $return;
+    }
+
+    /**
+     * @param string $name
+     * @param string $attr
+     * @return XmlHandler|null
+     * @throws RuntimeException if function requires a missing attribute
+     */
+    public function startElement($name, $attr)
+    {
+        /**
+         * @var array $params
+         */
+
+        #echo '<pre>[HANDLING '.$name.']</pre>';
+
+        if (count($attr) === 0) {
+            $params = array();
+        } else {
+            $params = array_combine(
+                array_map(
+                    function ($key) {
+                        return strtr($key, '-.:', '___');
+                    },
+                    array_keys($attr)
+                ),
+                array_values($attr)
+            );
+        }
+
+        return $this->dispatchFunction($name, $params);
     }
 
     public function endElement($name)
