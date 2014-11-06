@@ -12,6 +12,9 @@ use Closure;
  */
 class XmlHandler implements ArrayAccess
 {
+    final public function __construct()
+    {}
+
     /**
      * @var Closure[] hash where element name => function
      */
@@ -54,7 +57,19 @@ class XmlHandler implements ArrayAccess
             throw new RuntimeException("Closure expected");
         }
 
-        $this->functions[$name] = $function;
+        $names = explode('/', ltrim(str_replace('#', '/#', $name), '/'), 2);
+
+        if (count($names) > 1) {
+            // expand combined expression:
+
+            $child = $names[1];
+
+            $this->functions[$names[0]] = function (XmlHandler $parent) use ($child, $function) {
+                $parent[$child] = $function;
+            };
+        } else {
+            $this->functions[$name] = $function;
+        }
     }
 
     /**
@@ -81,8 +96,6 @@ class XmlHandler implements ArrayAccess
 
         $reflection = new ReflectionFunction($function);
 
-        $norm_name = strtr($name, '-.:', '___');
-
         $return = null;
 
         $params = array();
@@ -90,8 +103,8 @@ class XmlHandler implements ArrayAccess
         foreach ($reflection->getParameters() as $index => $param) {
             $param_name = $param->getName();
 
-            if (($index === 0) && ($param_name === $norm_name)) {
-                $params[0] = new XmlHandler();
+            if ($index === 0 && ($class = $param->getClass()) && ($class->name === __CLASS__ || $class->isSubclassOf(__CLASS__))) {
+                $params[0] = $class->newInstance();
                 $return = $params[0];
             } else {
                 if (array_key_exists($param_name, $values)) {

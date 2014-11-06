@@ -36,47 +36,33 @@ $doc = new XmlReader();
 
 $doc->case_folding = true;
 
-$doc['catalog'] = function (XmlHandler $catalog) use ($model) {
-    $catalog['cd'] = function (XmlHandler $cd) use ($model) {
-        $item = new CD();
+$doc['catalog/cd'] = function (XmlHandler $cd) use ($model) {
+    $item = new CD();
 
-        $model->cds[] = $item;
+    $model->cds[] = $item;
 
-        $cd['title'] = function (XmlHandler $title) use ($item) {
-            $title['#text'] = function ($text) use ($item) {
-                $item->title = trim($text);
-            };
-        };
+    $cd['title#text'] = function ($text) use ($item) {
+        $item->title = trim($text);
+    };
 
-        $cd['artist'] = function (XmlHandler $artist) use ($item) {
-            $artist['#text'] = function ($text) use ($item) {
-                $item->artist = trim($text);
-            };
-        };
+    $cd['artist#text'] = function ($text) use ($item) {
+        $item->artist = trim($text);
+    };
 
-        $cd['country'] = function (XmlHandler $country) use ($item) {
-            $country['#text'] = function ($text) use ($item) {
-                $item->country = trim($text);
-            };
-        };
+    $cd['country#text'] = function ($text) use ($item) {
+        $item->country = trim($text);
+    };
 
-        $cd['company'] = function (XmlHandler $company) use ($item) {
-            $company['#text'] = function ($text) use ($item) {
-                $item->company = trim($text);
-            };
-        };
+    $cd['company#text'] = function ($text) use ($item) {
+        $item->company = trim($text);
+    };
 
-        $cd['price'] = function (XmlHandler $price) use ($item) {
-            $price['#text'] = function ($text) use ($item) {
-                $item->price = floatval($text);
-            };
-        };
+    $cd['price#text'] = function ($text) use ($item) {
+        $item->price = floatval($text);
+    };
 
-        $cd['year'] = function (XmlHandler $year) use ($item) {
-            $year['#text'] = function ($text) use ($item) {
-                $item->year = intval($text);
-            };
-        };
+    $cd['year#text'] = function ($text) use ($item) {
+        $item->year = intval($text);
     };
 };
 
