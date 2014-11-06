@@ -30,16 +30,53 @@ class XmlReader extends XmlHandler
     protected $handlers;
 
     /**
+     * @param string $input XML input
+     *
+     * @return void
+     *
+     * @throws ParserException if the XML input contains error
+     */
+    public function parse($input)
+    {
+        /** @var resource $parser */
+        $parser = $this->createParser();
+
+        if (xml_parse($parser, $input, true) === false) {
+            throw ParserException::create($parser);
+        }
+
+        xml_parser_free($parser);
+    }
+
+    /**
      * @param string $path absolute path to XML file
      * @return void
-     * @throws RuntimeException if the XML file contains error
+     * @throws ParserException if the XML file contains error
      */
-    public function parse($path)
+    public function parseFile($path)
     {
-        /**
-         * @var resource $parser
-         */
+        /** @var resource $parser */
+        $parser = $this->createParser();
 
+        if (!($fp = fopen($path, "r"))) {
+            die("could not open XML input: {$path}");
+        }
+
+        while ($data = fread($fp, 4096)) {
+            if (xml_parse($parser, $data, feof($fp)) === false) {
+                throw ParserException::create($parser, $path);
+            }
+        }
+
+        xml_parser_free($parser);
+    }
+
+    /**
+     * @return resource
+     */
+    protected function createParser()
+    {
+        // reset the stack:
         $this->handlers = array($this);
 
         $parser = xml_parser_create();
@@ -54,24 +91,7 @@ class XmlReader extends XmlHandler
 
         xml_set_character_data_handler($parser, array($this, 'onCharacterData'));
 
-        if (!($fp = fopen($path, "r"))) {
-            die("could not open XML input: {$path}");
-        }
-
-        while ($data = fread($fp, 4096)) {
-            if (xml_parse($parser, $data, feof($fp)) === false) {
-                throw new RuntimeException(
-                    sprintf(
-                        "XML error: %s at line %d in %s",
-                        xml_error_string(xml_get_error_code($parser)),
-                        xml_get_current_line_number($parser),
-                        $path
-                    )
-                );
-            }
-        }
-
-        xml_parser_free($parser);
+        return $parser;
     }
 
     /**

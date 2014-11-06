@@ -1,7 +1,8 @@
 <?php
 
-require dirname(dirname(__FILE__)) . '/mindplay/easyxml/XmlHandler.php';
-require dirname(dirname(__FILE__)) . '/mindplay/easyxml/XmlReader.php';
+require dirname(__DIR__) . '/mindplay/easyxml/ParserException.php';
+require dirname(__DIR__) . '/mindplay/easyxml/XmlHandler.php';
+require dirname(__DIR__) . '/mindplay/easyxml/XmlReader.php';
 
 use mindplay\easyxml\XmlReader;
 use mindplay\easyxml\XmlHandler;
@@ -70,7 +71,7 @@ $doc['catalog/cd'] = function (XmlHandler $cd) use ($model) {
 
 $path = dirname(__FILE__) . '/cd_catalog.xml';
 
-$doc->parse($path);
+$doc->parseFile($path);
 
 // Dump the result:
 
