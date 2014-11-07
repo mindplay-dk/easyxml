@@ -17,6 +17,52 @@ class Catalog
      * @var CD[]
      */
     public $cds = array();
+
+    /**
+     * @param string absolute path to XML file
+     *
+     * @return Parser
+     */
+    public function load($path)
+    {
+        $doc = new Parser();
+
+        $doc->case_folding = true;
+
+        $model = $this;
+
+        $doc['catalog/cd'] = function (Visitor $cd) use ($model) {
+            $item = new CD();
+
+            $model->cds[] = $item;
+
+            $cd['title#text'] = function ($text) use ($item) {
+                $item->title = trim($text);
+            };
+
+            $cd['artist#text'] = function ($text) use ($item) {
+                $item->artist = trim($text);
+            };
+
+            $cd['country#text'] = function ($text) use ($item) {
+                $item->country = trim($text);
+            };
+
+            $cd['company#text'] = function ($text) use ($item) {
+                $item->company = trim($text);
+            };
+
+            $cd['price#text'] = function ($text) use ($item) {
+                $item->price = floatval($text);
+            };
+
+            $cd['year#text'] = function ($text) use ($item) {
+                $item->year = intval($text);
+            };
+        };
+
+        $doc->parseFile($path);
+    }
 }
 
 class CD
@@ -33,45 +79,9 @@ class CD
 
 $model = new Catalog();
 
-$doc = new Parser();
-
-$doc->case_folding = true;
-
-$doc['catalog/cd'] = function (Visitor $cd) use ($model) {
-    $item = new CD();
-
-    $model->cds[] = $item;
-
-    $cd['title#text'] = function ($text) use ($item) {
-        $item->title = trim($text);
-    };
-
-    $cd['artist#text'] = function ($text) use ($item) {
-        $item->artist = trim($text);
-    };
-
-    $cd['country#text'] = function ($text) use ($item) {
-        $item->country = trim($text);
-    };
-
-    $cd['company#text'] = function ($text) use ($item) {
-        $item->company = trim($text);
-    };
-
-    $cd['price#text'] = function ($text) use ($item) {
-        $item->price = floatval($text);
-    };
-
-    $cd['year#text'] = function ($text) use ($item) {
-        $item->year = intval($text);
-    };
-};
-
 // Run it:
 
-$path = dirname(__FILE__) . '/cd_catalog.xml';
-
-$doc->parseFile($path);
+$model->load(dirname(__FILE__) . '/cd_catalog.xml');
 
 // Dump the result:
 
