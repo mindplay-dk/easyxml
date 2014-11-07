@@ -1,11 +1,11 @@
 <?php
 
 require dirname(__DIR__) . '/mindplay/easyxml/ParserException.php';
-require dirname(__DIR__) . '/mindplay/easyxml/XmlHandler.php';
-require dirname(__DIR__) . '/mindplay/easyxml/XmlReader.php';
+require dirname(__DIR__) . '/mindplay/easyxml/Visitor.php';
+require dirname(__DIR__) . '/mindplay/easyxml/Parser.php';
 
-use mindplay\easyxml\XmlReader;
-use mindplay\easyxml\XmlHandler;
+use mindplay\easyxml\Parser;
+use mindplay\easyxml\Visitor;
 
 header('Content-type: text/plain');
 
@@ -33,11 +33,11 @@ class CD
 
 $model = new Catalog();
 
-$doc = new XmlReader();
+$doc = new Parser();
 
 $doc->case_folding = true;
 
-$doc['catalog/cd'] = function (XmlHandler $cd) use ($model) {
+$doc['catalog/cd'] = function (Visitor $cd) use ($model) {
     $item = new CD();
 
     $model->cds[] = $item;

@@ -8,47 +8,61 @@ use ReflectionFunction;
 use Closure;
 
 /**
- * XML Event Handler
+ * This class implements a collection of functions to handle every visited
+ * XML element and text nodes.
  */
-class XmlHandler implements ArrayAccess
+class Visitor implements ArrayAccess
 {
-    final public function __construct()
-    {}
+    /**
+     * Empty constructor
+     */
+    public function __construct()
+    {
+    }
 
     /**
      * @var Closure[] hash where element name => function
      */
-    private $functions = array();
+    private $_functions = array();
 
     /**
-     * @param string $name
+     * @param string $name element name
+     *
      * @return bool
+     *
      * @see ArrayAccess::offsetExists()
      */
     public function offsetExists($name)
     {
-        return isset($this->functions[$name]);
+        return isset($this->_functions[$name]);
     }
 
     /**
-     * @param string $name
+     * @param string $name element name
+     *
      * @return Closure
-     * @throws RuntimeException
+     *
+     * @throws RuntimeException on undefined element name/function
+     *
      * @see ArrayAccess::offsetGet()
      */
     public function offsetGet($name)
     {
-        if (isset($this->functions[$name]) === false) {
+        if (isset($this->_functions[$name]) === false) {
             throw new RuntimeException("undefined handler: $name");
         }
 
-        return $this->functions[$name];
+        return $this->_functions[$name];
     }
 
     /**
-     * @param string $name
+     * @param string $name element name
      * @param Closure $function
+     *
+     * @return void
+     *
      * @throws RuntimeException
+     *
      * @see ArrayAccess::offsetSet()
      */
     public function offsetSet($name, $function)
@@ -64,35 +78,43 @@ class XmlHandler implements ArrayAccess
 
             $child = $names[1];
 
-            $this->functions[$names[0]] = function (XmlHandler $parent) use ($child, $function) {
+            $this->_functions[$names[0]] = function (Visitor $parent) use ($child, $function) {
                 $parent[$child] = $function;
             };
+
+            // TODO refactor/reimplement - the current approach causes a memory leak!
         } else {
-            $this->functions[$name] = $function;
+            $this->_functions[$name] = $function;
         }
     }
 
     /**
-     * @param string $name
+     * @param string $name element name
+     *
+     * @return void
+     *
      * @see ArrayAccess::offsetUnset()
      */
     public function offsetUnset($name)
     {
-        unset($this->functions[$name]);
+        unset($this->_functions[$name]);
     }
 
     /**
-     * @param string $name
+     * @param string $name element name
      * @param array $values hash where parameter name => value
-     * @return XmlHandler|null
+     *
+     * @return Visitor|null generated Visitor for further parsing (or NULL to ignore further elements)
+     *
+     * @throws RuntimeException if unable to satisfy all the arguments of the dispatched function
      */
-    private function dispatchFunction($name, $values=array())
+    private function dispatchFunction($name, $values = array())
     {
-        if (!isset($this->functions[$name])) {
+        if (!isset($this->_functions[$name])) {
             return null; // no handler for this element
         }
 
-        $function = $this->functions[$name];
+        $function = $this->_functions[$name];
 
         $reflection = new ReflectionFunction($function);
 
@@ -122,10 +144,10 @@ class XmlHandler implements ArrayAccess
     }
 
     /**
-     * @param string $name
-     * @param string $attr
-     * @return XmlHandler|null
-     * @throws RuntimeException if function requires a missing attribute
+     * @param string $name element name
+     * @param string[] $attr map of element attributes
+     *
+     * @return Visitor|null generated Visitor for further parsing (or NULL to ignore further elements)
      */
     public function startElement($name, $attr)
     {
@@ -152,20 +174,26 @@ class XmlHandler implements ArrayAccess
         return $this->dispatchFunction($name, $params);
     }
 
+    /**
+     * @param string $name element name
+     */
     public function endElement($name)
     {
         #echo '<pre>[HANDLED '.$name.']</pre>';
 
-        if (isset($this->functions['#end'])) {
-            $function = $this->functions['#end'];
+        if (isset($this->_functions['#end'])) {
+            $function = $this->_functions['#end'];
             $function();
         }
     }
 
+    /**
+     * @param string $data text node content
+     */
     public function characterData($data)
     {
-        if (isset($this->functions['#text'])) {
-            $function = $this->functions['#text'];
+        if (isset($this->_functions['#text'])) {
+            $function = $this->_functions['#text'];
             $function($data);
         }
     }

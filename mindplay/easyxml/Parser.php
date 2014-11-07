@@ -2,12 +2,10 @@
 
 namespace mindplay\easyxml;
 
-use RuntimeException;
-
 /**
- * XML Reader
+ * This class implements parsing of XML files and content.
  */
-class XmlReader extends XmlHandler
+class Parser extends Visitor
 {
     /**
      * @var bool if true, diagnostic output will be generated
@@ -30,9 +28,9 @@ class XmlReader extends XmlHandler
     public $trim_text = true;
 
     /**
-     * @var XmlHandler[] $handlers XmlHandler stack
+     * @var Visitor[] $visitors node visitor stack
      */
-    protected $handlers;
+    protected $visitors;
 
     /**
      * @var string character data buffer
@@ -60,7 +58,9 @@ class XmlReader extends XmlHandler
 
     /**
      * @param string $path absolute path to XML file
+     *
      * @return void
+     *
      * @throws ParserException if the XML file contains error
      */
     public function parseFile($path)
@@ -82,12 +82,14 @@ class XmlReader extends XmlHandler
     }
 
     /**
+     * Create and configure the XML parser.
+     *
      * @return resource
      */
     protected function createParser()
     {
         // reset the stack:
-        $this->handlers = array($this);
+        $this->visitors = array($this);
 
         // reset the character data buffer:
         $this->_buffer = '';
@@ -109,18 +111,20 @@ class XmlReader extends XmlHandler
     }
 
     /**
-     * @param resource $h
-     * @param string $name
-     * @param string[] $attr
+     * @param resource $parser XML parser
+     * @param string   $name   element name
+     * @param string[] $attr   map of attributes
+     *
+     * @return void
      *
      * @see parse()
      * @see xml_set_element_handler()
      */
-    protected function onStartElement($h, $name, $attr)
+    protected function onStartElement($parser, $name, $attr)
     {
         // Flush the character data buffer:
 
-        $this->flushBuffer();
+        $this->_flushBuffer();
 
         // Apply case folding:
 
@@ -149,25 +153,27 @@ class XmlReader extends XmlHandler
 
         // Notify current handler and push the next handler onto the stack:
 
-        $handler = $this->handlers[ count($this->handlers)-1 ];
+        $handler = $this->visitors[count($this->visitors) - 1];
 
-        $this->handlers[] = ($handler === null)
+        $this->visitors[] = ($handler === null)
             ? null
             : $handler->startElement($name, $attr);
     }
 
     /**
-     * @param resource $h
-     * @param string $name
+     * @param resource $parser XML parser
+     * @param string   $name   element name
+     *
+     * @return void
      *
      * @see parse()
      * @see xml_set_element_handler()
      */
-    protected function onEndElement($h, $name)
+    protected function onEndElement($parser, $name)
     {
         // Flush the character data buffer:
 
-        $this->flushBuffer();
+        $this->_flushBuffer();
 
         // Apply case folding:
 
@@ -183,7 +189,7 @@ class XmlReader extends XmlHandler
 
         // Pop handler from stack and notify:
 
-        $handler = array_pop($this->handlers);
+        $handler = array_pop($this->visitors);
 
         if ($handler !== null) {
             $handler->endElement($name);
@@ -191,13 +197,15 @@ class XmlReader extends XmlHandler
     }
 
     /**
-     * @param resource $h
-     * @param string $data
+     * @param resource $parser XML parser
+     * @param string   $data   partial text node content
+     *
+     * @return void
      *
      * @see parse()
      * @see xml_set_character_data_handler()
      */
-    protected function onCharacterData($h, $data)
+    protected function onCharacterData($parser, $data)
     {
         // Diagnostic output:
 
@@ -211,9 +219,11 @@ class XmlReader extends XmlHandler
     }
 
     /**
+     * Flush any buffered text node content to the current visitor.
+     *
      * @return void
      */
-    private function flushBuffer()
+    private function _flushBuffer()
     {
         if ($this->_buffer === '') {
             return;
@@ -221,7 +231,7 @@ class XmlReader extends XmlHandler
 
         // Notify top-most handler on current stack:
 
-        $handler = $this->handlers[ count($this->handlers)-1 ];
+        $handler = $this->visitors[count($this->visitors) - 1];
 
         if ($handler !== null) {
             $handler->characterData($this->trim_text ? trim($this->_buffer) : $this->_buffer);

@@ -1,11 +1,11 @@
 <?php
 
-use mindplay\easyxml\XmlReader;
-use mindplay\easyxml\XmlHandler;
+use mindplay\easyxml\Parser;
+use mindplay\easyxml\Visitor;
 
 require __DIR__ . '/mindplay/easyxml/ParserException.php';
-require __DIR__ . '/mindplay/easyxml/XmlHandler.php';
-require __DIR__ . '/mindplay/easyxml/XmlReader.php';
+require __DIR__ . '/mindplay/easyxml/Visitor.php';
+require __DIR__ . '/mindplay/easyxml/Parser.php';
 
 header('Content-type: text/plain');
 
@@ -47,12 +47,12 @@ class Kitten extends Cat
 test(
     'Parsing elements and attributes',
     function () use ($SAMPLE) {
-        $doc = new XmlReader();
+        $doc = new Parser();
 
         $model = new Cats();
 
-        $doc['cats'] = function (XmlHandler $cats) use ($model) {
-            $cats['cat'] = function (XmlHandler $cat_node, $name) use ($model) {
+        $doc['cats'] = function (Visitor $cats) use ($model) {
+            $cats['cat'] = function (Visitor $cat_node, $name) use ($model) {
                 $cat = new Cat();
                 $cat->name = $name;
 
@@ -66,7 +66,7 @@ test(
                 };
             };
 
-            $cats['notes'] = function (XmlHandler $notes) use ($model) {
+            $cats['notes'] = function (Visitor $notes) use ($model) {
                 $notes['#text'] = function ($text) use ($model) {
                     $model->notes = $text;
                 };
