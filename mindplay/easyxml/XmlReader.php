@@ -25,9 +25,19 @@ class XmlReader extends XmlHandler
     public $skip_white = true;
 
     /**
+     * @var bool if true, trim leading/trailing whitespace in text nodes
+     */
+    public $trim_text = true;
+
+    /**
      * @var XmlHandler[] $handlers XmlHandler stack
      */
     protected $handlers;
+
+    /**
+     * @var string character data buffer
+     */
+    private $_buffer;
 
     /**
      * @param string $input XML input
@@ -79,6 +89,10 @@ class XmlReader extends XmlHandler
         // reset the stack:
         $this->handlers = array($this);
 
+        // reset the character data buffer:
+        $this->_buffer = '';
+
+        // create and configure the parser:
         $parser = xml_parser_create();
 
         // skip whitespace-only values
@@ -104,6 +118,10 @@ class XmlReader extends XmlHandler
      */
     protected function onStartElement($h, $name, $attr)
     {
+        // Flush the character data buffer:
+
+        $this->flushBuffer();
+
         // Apply case folding:
 
         if ($this->case_folding === true) {
@@ -147,6 +165,10 @@ class XmlReader extends XmlHandler
      */
     protected function onEndElement($h, $name)
     {
+        // Flush the character data buffer:
+
+        $this->flushBuffer();
+
         // Apply case folding:
 
         if ($this->case_folding === true) {
@@ -183,12 +205,30 @@ class XmlReader extends XmlHandler
             echo "<pre>" . $data . "</pre>";
         }
 
+        // Buffer the character data:
+
+        $this->_buffer .= $data;
+    }
+
+    /**
+     * @return void
+     */
+    private function flushBuffer()
+    {
+        if ($this->_buffer === '') {
+            return;
+        }
+
         // Notify top-most handler on current stack:
 
         $handler = $this->handlers[ count($this->handlers)-1 ];
 
         if ($handler !== null) {
-            $handler->characterData($data);
+            $handler->characterData($this->trim_text ? trim($this->_buffer) : $this->_buffer);
         }
+
+        // Clear the character data buffer:
+
+        $this->_buffer = '';
     }
 }
