@@ -1,8 +1,8 @@
 <?php
 
-require dirname(__DIR__) . '/mindplay/easyxml/ParserException.php';
-require dirname(__DIR__) . '/mindplay/easyxml/Visitor.php';
-require dirname(__DIR__) . '/mindplay/easyxml/Parser.php';
+/** @var \Composer\Autoload\ClassLoader $autoloader */
+$autoloader = require dirname(__DIR__) . '/vendor/autoload.php';
+$autoloader->addPsr4('mindplay\\easyxml\\', __DIR__ . '/src');
 
 use mindplay\easyxml\Parser;
 use mindplay\easyxml\Visitor;
