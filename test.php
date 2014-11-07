@@ -48,7 +48,6 @@ test(
     'Parsing elements and attributes',
     function () use ($SAMPLE) {
         $doc = new XmlReader();
-        #$doc->debug = true;
 
         $model = new Cats();
 
@@ -76,15 +75,13 @@ test(
 
         $doc->parse($SAMPLE);
 
-        #var_dump($model);
+        eq(count($model->cats), 2, 'document contains 2 cats');
 
-        eq(count($model->cats), 2);
-
-        eq(count($model->cats[0]->kittens), 1);
+        eq(count($model->cats[0]->kittens), 1, 'first cat has 1 kitten');
         eq($model->cats[0]->name, 'whiskers');
         eq($model->cats[0]->kittens[0]->name, 'mittens');
 
-        eq(count($model->cats[1]->kittens), 1);
+        eq(count($model->cats[1]->kittens), 1, 'second cat has 1 kitten');
         eq($model->cats[1]->name, 'tinker');
         eq($model->cats[1]->kittens[0]->name, 'binky');
 
