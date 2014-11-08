@@ -39,10 +39,30 @@ class Cat
 
     /** @var Kitten[] */
     public $kittens = array();
+
+    /** @var string cat status */
+    public $status;
 }
 
 class Kitten extends Cat
 {}
+
+function testModel(Cats $model)
+{
+    eq(count($model->cats), 2, 'document contains 2 cats');
+
+    eq(count($model->cats[0]->kittens), 1, 'first cat has 1 kitten');
+    eq($model->cats[0]->status, 'happy');
+    eq($model->cats[0]->name, 'whiskers');
+    eq($model->cats[0]->kittens[0]->name, 'mittens');
+
+    eq(count($model->cats[1]->kittens), 1, 'second cat has 1 kitten');
+    eq($model->cats[1]->status, 'happy');
+    eq($model->cats[1]->name, 'tinker');
+    eq($model->cats[1]->kittens[0]->name, 'binky');
+
+    eq($model->notes, 'Hello World');
+}
 
 test(
     'Parsing elements and attributes',
@@ -64,6 +84,10 @@ test(
 
                     $cat->kittens[] = $kitten;
                 };
+
+                $cat_node['#end'] = function () use ($cat) {
+                    $cat->status = 'happy';
+                };
             };
 
             $cats['notes'] = function (Visitor $notes) use ($model) {
@@ -75,17 +99,79 @@ test(
 
         $doc->parse($SAMPLE);
 
-        eq(count($model->cats), 2, 'document contains 2 cats');
+        testModel($model);
+    }
+);
 
-        eq(count($model->cats[0]->kittens), 1, 'first cat has 1 kitten');
-        eq($model->cats[0]->name, 'whiskers');
-        eq($model->cats[0]->kittens[0]->name, 'mittens');
+test(
+    'Multi-level element matching',
+    function () use ($SAMPLE) {
+        $doc = new Parser();
 
-        eq(count($model->cats[1]->kittens), 1, 'second cat has 1 kitten');
-        eq($model->cats[1]->name, 'tinker');
-        eq($model->cats[1]->kittens[0]->name, 'binky');
+        $model = new Cats();
 
-        eq($model->notes, 'Hello World'); # huh?
+        $doc['cats'] = function (Visitor $cats) use ($model) {
+            $cats['cat'] = function (Visitor $cat_node, $name) use ($model) {
+                $cat = new Cat();
+                $cat->name = $name;
+
+                $model->cats[] = $cat;
+
+                $cat_node['kitten'] = function ($name) use ($cat) {
+                    $kitten = new Kitten();
+                    $kitten->name = $name;
+
+                    $cat->kittens[] = $kitten;
+                };
+
+                $cat_node['#end'] = function () use ($cat) {
+                    $cat->status = 'happy';
+                };
+            };
+
+            $cats['notes#text'] = function ($text) use ($model) {
+                $model->notes = $text;
+            };
+        };
+
+        $doc->parse($SAMPLE);
+
+        testModel($model);
+    }
+);
+
+test(
+    'Flat element matching',
+    function () use ($SAMPLE) {
+        $doc = new Parser();
+
+        $model = new Cats();
+
+        $doc['cats/cat'] = function (Visitor $cat_node, $name) use ($model) {
+            $cat = new Cat();
+            $cat->name = $name;
+
+            $model->cats[] = $cat;
+
+            $cat_node['kitten'] = function ($name) use ($cat) {
+                $kitten = new Kitten();
+                $kitten->name = $name;
+
+                $cat->kittens[] = $kitten;
+            };
+
+            $cat_node['#end'] = function () use ($cat) {
+                $cat->status = 'happy';
+            };
+        };
+
+        $doc['cats/notes#text'] = function ($text) use ($model) {
+            $model->notes = $text;
+        };
+
+        $doc->parse($SAMPLE);
+
+        testModel($model);
     }
 );
 
