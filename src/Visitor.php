@@ -14,16 +14,14 @@ use Closure;
 class Visitor implements ArrayAccess
 {
     /**
-     * Empty constructor
-     */
-    public function __construct()
-    {
-    }
-
-    /**
      * @var Closure[] hash where element name => function
      */
     private $_functions = array();
+
+    /**
+     * @var string path of current element
+     */
+    protected $path;
 
     /**
      * @param string $name element name
@@ -71,21 +69,7 @@ class Visitor implements ArrayAccess
             throw new RuntimeException("Closure expected");
         }
 
-        $names = explode('/', ltrim(str_replace('#', '/#', $name), '/'), 2);
-
-        if (count($names) > 1) {
-            // expand combined expression:
-
-            $child = $names[1];
-
-            $this->_functions[$names[0]] = function (Visitor $parent) use ($child, $function) {
-                $parent[$child] = $function;
-            };
-
-            // TODO refactor/reimplement - the current approach causes a memory leak!
-        } else {
-            $this->_functions[$name] = $function;
-        }
+        $this->_functions[$name] = $function;
     }
 
     /**
@@ -155,7 +139,9 @@ class Visitor implements ArrayAccess
          * @var array $params
          */
 
-        #echo '<pre>[HANDLING '.$name.']</pre>';
+        $this->path = strlen($this->path)
+            ? $this->path . '/' . $name
+            : $name;
 
         if (count($attr) === 0) {
             $params = array();
@@ -171,7 +157,7 @@ class Visitor implements ArrayAccess
             );
         }
 
-        return $this->dispatchFunction($name, $params);
+        return $this->dispatchFunction($this->path, $params);
     }
 
     /**
@@ -179,10 +165,14 @@ class Visitor implements ArrayAccess
      */
     public function endElement($name)
     {
-        #echo '<pre>[HANDLED '.$name.']</pre>';
+        if (substr($this->path, strlen($this->path) - strlen($name), strlen($name)) !== $name) {
+            throw new RuntimeException("internal error: encountered $name while at $this->path");
+        }
 
-        if (isset($this->_functions['#end'])) {
-            $function = $this->_functions['#end'];
+        $this->path = substr($this->path, 0, max(0, strlen($this->path) - strlen($name) - 1));
+
+        if (isset($this->_functions[$this->path . '#end'])) {
+            $function = $this->_functions[$this->path . '#end'];
             $function();
         }
     }
@@ -192,8 +182,8 @@ class Visitor implements ArrayAccess
      */
     public function characterData($data)
     {
-        if (isset($this->_functions['#text'])) {
-            $function = $this->_functions['#text'];
+        if (isset($this->_functions[$this->path . '#text'])) {
+            $function = $this->_functions[$this->path . '#text'];
             $function($data);
         }
     }

@@ -8,11 +8,6 @@ namespace mindplay\easyxml;
 class Parser extends Visitor
 {
     /**
-     * @var bool if true, diagnostic output will be generated
-     */
-    public $debug = false;
-
-    /**
      * @var bool if true, enable case-folding (read all element/attribute-names in lower-case)
      */
     public $case_folding = false;
@@ -31,6 +26,11 @@ class Parser extends Visitor
      * @var Visitor[] $visitors node visitor stack
      */
     protected $visitors;
+
+    /**
+     * @var Visitor $visitor most recent Visitor
+     */
+    protected $visitor;
 
     /**
      * @var string character data buffer
@@ -89,6 +89,7 @@ class Parser extends Visitor
     protected function createParser()
     {
         // reset the stack:
+        $this->visitor = $this;
         $this->visitors = array($this);
 
         // reset the character data buffer:
@@ -139,25 +140,13 @@ class Parser extends Visitor
             }
         }
 
-        // Diagnostic output:
+        // Notify current Visitor and push the next Visitor onto the stack:
 
-        if ($this->debug === true) {
-            echo "<pre>&lt;$name";
+        $next_visitor = $this->visitor->startElement($name, $attr);
 
-            foreach ($attr as $attrname => $value) {
-                echo " $attrname=\"$value\"";
-            }
+        $this->visitor = $next_visitor ?: $this->visitor;
 
-            echo "&gt;</pre>";
-        }
-
-        // Notify current handler and push the next handler onto the stack:
-
-        $handler = $this->visitors[count($this->visitors) - 1];
-
-        $this->visitors[] = ($handler === null)
-            ? null
-            : $handler->startElement($name, $attr);
+        $this->visitors[] = $next_visitor;
     }
 
     /**
@@ -181,19 +170,17 @@ class Parser extends Visitor
             $name = strtolower($name);
         }
 
-        // Diagnostic output:
+        // Get previous Visitor from stack and notify:
 
-        if ($this->debug === true) {
-            echo "<pre>&lt;/$name&gt;</pre>";
+        array_pop($this->visitors);
+
+        $this->visitor = null;
+
+        for ($n=count($this->visitors) - 1; $n >= 0 && !$this->visitor; $n--) {
+            $this->visitor = $this->visitors[$n];
         }
 
-        // Pop handler from stack and notify:
-
-        $handler = array_pop($this->visitors);
-
-        if ($handler !== null) {
-            $handler->endElement($name);
-        }
+        $this->visitor->endElement($name);
     }
 
     /**
@@ -207,12 +194,6 @@ class Parser extends Visitor
      */
     protected function onCharacterData($parser, $data)
     {
-        // Diagnostic output:
-
-        if ($this->debug === true) {
-            echo "<pre>" . $data . "</pre>";
-        }
-
         // Buffer the character data:
 
         $this->_buffer .= $data;
@@ -225,17 +206,17 @@ class Parser extends Visitor
      */
     private function _flushBuffer()
     {
+        if ($this->trim_text) {
+            $this->_buffer = trim($this->_buffer);
+        }
+
         if ($this->_buffer === '') {
             return;
         }
 
         // Notify top-most handler on current stack:
 
-        $handler = $this->visitors[count($this->visitors) - 1];
-
-        if ($handler !== null) {
-            $handler->characterData($this->trim_text ? trim($this->_buffer) : $this->_buffer);
-        }
+        $this->visitor->characterData($this->_buffer);
 
         // Clear the character data buffer:
 
