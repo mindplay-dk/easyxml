@@ -13,8 +13,8 @@ documents, such as XHTML documents.
 Parsing happens on-the-fly, e.g. avoiding the overhead of loading an entire document
 into memory and performing repetitive queries against it. This approach is memory
 efficient, enabling you to parse very large documents in a streaming fashion - it is
-not (by design) extremely fast, but XML parsing is never truly fast, so you should
-definitely always cache the parsed results.
+not super fast (throughput ~500 KB/sec on my laptop) but XML parsing is never truly
+fast, so you should definitely always cache the parsed results.
 
 
 Usage
