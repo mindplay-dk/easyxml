@@ -1,8 +1,8 @@
 <?php
 
 /** @var \Composer\Autoload\ClassLoader $autoloader */
-$autoloader = require dirname(__DIR__) . '/vendor/autoload.php';
-$autoloader->addPsr4('mindplay\\easyxml\\', __DIR__ . '/src');
+$autoloader = require dirname(dirname(__DIR__)) . '/vendor/autoload.php';
+$autoloader->addPsr4('mindplay\\easyxml\\', dirname(__DIR__) . '/src');
 
 require __DIR__ . '/model.php';
 

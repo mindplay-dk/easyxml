@@ -117,7 +117,7 @@ class Visitor implements ArrayAccess
                     $params[$index] = $values[$param_name];
                 } else if ($param->isOptional() === false) {
                     $func_def = 'function defined in ' . $reflection->getFileName() . ' at line ' . $reflection->getStartLine();
-                    throw new RuntimeException("unable to satisfy required argument $param_name for $func_def");
+                    throw new RuntimeException("unable to satisfy required argument \${$param_name} for {$func_def}");
                 }
             }
         }
@@ -165,10 +165,6 @@ class Visitor implements ArrayAccess
      */
     public function endElement($name)
     {
-        if (substr($this->path, strlen($this->path) - strlen($name), strlen($name)) !== $name) {
-            throw new RuntimeException("internal error: encountered $name while at $this->path");
-        }
-
         $this->path = substr($this->path, 0, max(0, strlen($this->path) - strlen($name) - 1));
 
         if (isset($this->_functions[$this->path . '#end'])) {

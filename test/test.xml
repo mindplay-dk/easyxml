@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cats>
+    <cat name="whiskers">
+        <kitten name="mittens"/>
+    </cat>
+    <cat name="tinker">
+        <kitten name="binky"/>
+    </cat>
+    <notes>
+        Hello World
+    </notes>
+</cats>

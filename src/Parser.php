@@ -1,12 +1,28 @@
 <?php
 
 namespace mindplay\easyxml;
+use RuntimeException;
 
 /**
  * This class implements parsing of XML files and content.
  */
 class Parser extends Visitor
 {
+    const ENCODING_UTF8 = 'UTF-8';
+    const ENCODING_ISO = 'ISO-8859-1';
+    const ENCODING_ASCII = 'US-ASCII';
+
+    /**
+     * @var string input character set encoding (defaults to UTF-8)
+     *
+     * @see Parser::ENCODING_UTF8
+     * @see Parser::ENCODING_ISO
+     * @see Parser::ENCODING_ASCII
+     *
+     * @see createParser()
+     */
+    public $encoding = self::ENCODING_UTF8;
+
     /**
      * @var bool if true, enable case-folding (read all element/attribute-names in lower-case)
      */
@@ -21,6 +37,13 @@ class Parser extends Visitor
      * @var bool if true, trim leading/trailing whitespace in text nodes
      */
     public $trim_text = true;
+
+    /**
+     * @var int buffer size in bytes (when reading XML files)
+     *
+     * @see parseFile()
+     */
+    public $buffer_size = 4096;
 
     /**
      * @var Visitor[] $visitors node visitor stack
@@ -49,7 +72,7 @@ class Parser extends Visitor
         /** @var resource $parser */
         $parser = $this->createParser();
 
-        if (xml_parse($parser, $input, true) === false) {
+        if (xml_parse($parser, $input, true) !== 1) {
             throw ParserException::create($parser);
         }
 
@@ -61,6 +84,7 @@ class Parser extends Visitor
      *
      * @return void
      *
+     * @throws RuntimeException if the XML file was not found
      * @throws ParserException if the XML file contains error
      */
     public function parseFile($path)
@@ -68,12 +92,14 @@ class Parser extends Visitor
         /** @var resource $parser */
         $parser = $this->createParser();
 
-        if (!($fp = fopen($path, "r"))) {
-            die("could not open XML input: {$path}");
+        $file = @fopen($path, "r");
+
+        if ($file === false) {
+            throw new RuntimeException("could not open XML file: {$path}");
         }
 
-        while ($data = fread($fp, 4096)) {
-            if (xml_parse($parser, $data, feof($fp)) === false) {
+        while ($data = fread($file, $this->buffer_size)) {
+            if (xml_parse($parser, $data, feof($file)) !== 1) {
                 throw ParserException::create($parser, $path);
             }
         }
@@ -96,7 +122,7 @@ class Parser extends Visitor
         $this->_buffer = '';
 
         // create and configure the parser:
-        $parser = xml_parser_create();
+        $parser = xml_parser_create($this->encoding);
 
         // skip whitespace-only values
         xml_parser_set_option($parser, XML_OPTION_SKIP_WHITE, $this->skip_white);
