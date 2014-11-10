@@ -112,14 +112,25 @@ class Visitor implements ArrayAccess
             if ($index === 0 && ($class = $param->getClass()) && ($class->name === __CLASS__ || $class->isSubclassOf(__CLASS__))) {
                 $params[0] = $class->newInstance();
                 $return = $params[0];
-            } else {
-                if (array_key_exists($param_name, $values)) {
-                    $params[$index] = $values[$param_name];
-                } else if ($param->isOptional() === false) {
-                    $func_def = 'function defined in ' . $reflection->getFileName() . ' at line ' . $reflection->getStartLine();
-                    throw new RuntimeException("unable to satisfy required argument \${$param_name} for {$func_def}");
-                }
+
+                continue;
             }
+
+            if (array_key_exists($param_name, $values)) {
+                $params[$index] = $values[$param_name];
+
+                continue;
+            }
+
+            if ($param->isDefaultValueAvailable()) {
+                $params[$index] = $param->getDefaultValue();
+
+                continue;
+            }
+
+            $func_def = 'function defined in ' . $reflection->getFileName() . ' at line ' . $reflection->getStartLine();
+
+            throw new RuntimeException("unable to satisfy required argument \${$param_name} for {$func_def}");
         }
 
         call_user_func_array($function, $params);

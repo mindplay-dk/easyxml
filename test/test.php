@@ -101,6 +101,33 @@ test(
 );
 
 test(
+    'Injects attributes as parameters',
+    function () {
+        $parser = new Parser();
+
+        $function_called = false;
+
+        $parser['foo'] = function ($bar = 'baz') use (&$function_called) {
+            $function_called = $bar === 'baz';
+        };
+
+        $parser->parse('<foo/>');
+
+        ok(true, 'missing argument filled with default value');
+
+        $parser['foo'] = function ($bar) {};
+
+        expect(
+            'RuntimeException',
+            'Missing required attribute',
+            function () use ($parser) {
+                $parser->parse('<foo/>');
+            }
+        );
+    }
+);
+
+test(
     'Parsing elements and attributes',
     function () use ($SAMPLE) {
         $doc = new Parser();
@@ -362,18 +389,6 @@ test(
             'Invalid XML from a file',
             function () use ($parser) {
                 $parser->parseFile(__DIR__ . '/junk.xml');
-            }
-        );
-
-        $parser = new Parser();
-
-        $parser['foo'] = function ($bar) {};
-
-        expect(
-            'RuntimeException',
-            'Missing required attribute',
-            function () use ($parser) {
-                $parser->parse('<foo/>');
             }
         );
     }
