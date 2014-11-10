@@ -1,6 +1,12 @@
 mindplay/easyxml
 ----------------
 
+[![Build Status](https://travis-ci.org/mindplay-dk/easyxml.svg?branch=master)](https://travis-ci.org/mindplay-dk/easyxml)
+
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/mindplay-dk/easyxml/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/mindplay-dk/easyxml/?branch=master)
+
+[![Code Coverage](https://scrutinizer-ci.com/g/mindplay-dk/easyxml/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/mindplay-dk/easyxml/?branch=master)
+
 Functional XML-reader for PHP 5.3+.
 
 A somewhat different approach to reading/parsing XML files with PHP, using a hierarchy
