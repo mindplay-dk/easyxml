@@ -3,9 +3,7 @@
 use mindplay\easyxml\Parser;
 use mindplay\easyxml\Visitor;
 
-/** @var \Composer\Autoload\ClassLoader $autoloader */
-$autoloader = require dirname(__DIR__) . '/vendor/autoload.php';
-$autoloader->addPsr4('mindplay\\easyxml\\', __DIR__ . '/src');
+require dirname(__DIR__) . '/vendor/autoload.php';
 
 header('Content-type: text/plain');
 
