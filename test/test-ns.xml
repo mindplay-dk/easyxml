@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root xmlns:a="http://a/" xmlns:b="http://b/">
+    <a:foo>
+        <b:bar xmlns:a="http://a/a/">
+            <a:foo>Hello AA</a:foo>
+        </b:bar>
+        <a:foo>Hello A</a:foo>
+    </a:foo>
+</root>
