@@ -403,13 +403,18 @@ test(
 
         $text_aa = "";
         $text_a = "";
+        $text_attr = "";
 
-        $parser['root/a_foo'] = function (Visitor $foo) use (&$text_a, &$text_aa) {
-            $foo['b_bar/aa_foo#text'] = function ($text) use (&$text_aa) {
+        $parser['root/a:foo'] = function (Visitor $foo) use (&$text_a, &$text_aa, &$text_attr) {
+            $foo['b:bar/aa:foo#text'] = function ($text) use (&$text_aa) {
                 $text_aa = $text;
             };
 
-            $foo['a_foo#text'] = function ($text) use (&$text_a) {
+            $foo['a:foo'] = function ($a_biff) use (&$text_a, &$text_attr) {
+                $text_attr = $a_biff;
+            };
+
+            $foo['a:foo#text'] = function ($text) use (&$text_a) {
                 $text_a = $text;
             };
         };
@@ -418,6 +423,7 @@ test(
 
         eq($text_aa, "Hello AA");
         eq($text_a, "Hello A");
+        eq($text_attr, "bam");
     }
 );
 

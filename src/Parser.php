@@ -194,6 +194,13 @@ class Parser extends Visitor
             }
         }
 
+        if (count($attr)) {
+            $attr = array_combine(
+                array_map(array($this, "applyUserPrefix"), array_keys($attr)),
+                array_values($attr)
+            );
+        }
+
         // Handle XML namespace declarations:
 
         $this->ns_stack[] = array();
@@ -210,7 +217,7 @@ class Parser extends Visitor
 
         // Notify current Visitor and push the next Visitor onto the stack:
 
-        $next_visitor = $this->visitor->startElement($this->applyUserPrefix($name), $attr);
+        $next_visitor = $this->visitor->startElement($this->applyUserPrefix($name, ":"), $attr);
 
         $this->visitor = $next_visitor ?: $this->visitor;
 
@@ -256,7 +263,7 @@ class Parser extends Visitor
             $this->visitor = $this->visitors[$n];
         }
 
-        $this->visitor->endElement($this->applyUserPrefix($name));
+        $this->visitor->endElement($this->applyUserPrefix($name, ":"));
     }
 
     /**
@@ -282,10 +289,11 @@ class Parser extends Visitor
      * defined for that URI as `b`, the resolved name is `b_foo` - e.g. suitable for parameter injection.
      *
      * @param string $name
+     * @param string $separator
      *
      * @return string
      */
-    private function applyUserPrefix($name)
+    private function applyUserPrefix($name, $separator = "_")
     {
         $pos = strpos($name, ":");
 
@@ -307,7 +315,7 @@ class Parser extends Visitor
 
         $user_prefix = $this->ns_prefix[$uri];
 
-        return "{$user_prefix}_" . substr($name, $pos + 1);
+        return "{$user_prefix}{$separator}" . substr($name, $pos + 1);
     }
 
     /**

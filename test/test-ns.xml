@@ -4,6 +4,6 @@
         <b:bar xmlns:a="http://a/a/">
             <a:foo>Hello AA</a:foo>
         </b:bar>
-        <a:foo>Hello A</a:foo>
+        <a:foo a:biff="bam">Hello A</a:foo>
     </a:foo>
 </root>
