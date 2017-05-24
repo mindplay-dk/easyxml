@@ -326,7 +326,8 @@ class Parser extends Visitor
     private function _flushBuffer()
     {
         if ($this->trim_text) {
-            $this->_buffer = trim($this->_buffer);
+            $this->_buffer = preg_replace('/^\s+/u', '',  $this->_buffer);
+            $this->_buffer = preg_replace('/\s+$/u', '',  $this->_buffer);
         }
 
         if ($this->_buffer === '') {
