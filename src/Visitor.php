@@ -160,7 +160,7 @@ class Visitor implements ArrayAccess
             $params = array_combine(
                 array_map(
                     function ($key) {
-                        return strtr($key, '-.:', '___');
+                        return strtr($key, '-.', '__');
                     },
                     array_keys($attr)
                 ),
@@ -178,8 +178,10 @@ class Visitor implements ArrayAccess
     {
         $this->path = substr($this->path, 0, max(0, strlen($this->path) - strlen($name) - 1));
 
-        if (isset($this->_functions[$this->path . '#end'])) {
-            $function = $this->_functions[$this->path . '#end'];
+        $handler = "{$this->path}#end";
+
+        if (isset($this->_functions[$handler])) {
+            $function = $this->_functions[$handler];
             $function();
         }
     }
@@ -189,8 +191,10 @@ class Visitor implements ArrayAccess
      */
     public function characterData($data)
     {
-        if (isset($this->_functions[$this->path . '#text'])) {
-            $function = $this->_functions[$this->path . '#text'];
+        $handler = "{$this->path}#text";
+
+        if (isset($this->_functions[$handler])) {
+            $function = $this->_functions[$handler];
             $function($data);
         }
     }

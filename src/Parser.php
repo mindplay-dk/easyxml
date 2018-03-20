@@ -61,6 +61,21 @@ class Parser extends Visitor
     private $_buffer;
 
     /**
+     * @var string[][] map where namespace xmlns-prefix => stack of namespace URIs
+     */
+    private $ns_uri = array();
+
+    /**
+     * @var string[] map where namespace URI => user-defined namespace prefix
+     */
+    private $ns_prefix = array();
+
+    /**
+     * @var string[][] stack where each entry is a list of namespace prefixes started at the corresponding depth
+     */
+    private $ns_stack = array();
+
+    /**
      * @param string $input XML input
      *
      * @return void
@@ -77,6 +92,17 @@ class Parser extends Visitor
         }
 
         xml_parser_free($parser);
+    }
+
+    /**
+     * Set the alias used for a namespace URI in Visitors.
+     *
+     * @param string $uri namespace URI
+     * @param string $alias
+     */
+    public function setPrefix($uri, $alias)
+    {
+        $this->ns_prefix[$uri] = $alias;
     }
 
     /**
@@ -124,14 +150,16 @@ class Parser extends Visitor
         // create and configure the parser:
         $parser = xml_parser_create($this->encoding);
 
-        // skip whitespace-only values
+        // skip whitespace-only values:
         xml_parser_set_option($parser, XML_OPTION_SKIP_WHITE, $this->skip_white);
 
         // disable case-folding - read XML element/attribute names as-is:
         xml_parser_set_option($parser, XML_OPTION_CASE_FOLDING, false);
 
+        // handle element start/end:
         xml_set_element_handler($parser, array($this, 'onStartElement'), array($this, 'onEndElement'));
 
+        // handle character data:
         xml_set_character_data_handler($parser, array($this, 'onCharacterData'));
 
         return $parser;
@@ -166,9 +194,30 @@ class Parser extends Visitor
             }
         }
 
+        if (count($attr)) {
+            $attr = array_combine(
+                array_map(array($this, "applyUserPrefix"), array_keys($attr)),
+                array_values($attr)
+            );
+        }
+
+        // Handle XML namespace declarations:
+
+        $this->ns_stack[] = array();
+
+        foreach ($attr as $attr_name => $value) {
+            if (strncmp($attr_name, "xmlns:", 6) === 0) {
+                $prefix = substr($attr_name, 6);
+
+                $this->ns_uri[$prefix][] = $value; // URI
+
+                $this->ns_stack[count($this->ns_stack) - 1][] = $prefix;
+            }
+        }
+
         // Notify current Visitor and push the next Visitor onto the stack:
 
-        $next_visitor = $this->visitor->startElement($name, $attr);
+        $next_visitor = $this->visitor->startElement($this->applyUserPrefix($name, ":"), $attr);
 
         $this->visitor = $next_visitor ?: $this->visitor;
 
@@ -196,6 +245,14 @@ class Parser extends Visitor
             $name = strtolower($name);
         }
 
+        // Handle XML namespaces falling out of scope:
+
+        $prefixes = array_pop($this->ns_stack);
+
+        foreach ($prefixes as $prefix) {
+            array_pop($this->ns_uri[$prefix]);
+        }
+
         // Get previous Visitor from stack and notify:
 
         array_pop($this->visitors);
@@ -206,7 +263,7 @@ class Parser extends Visitor
             $this->visitor = $this->visitors[$n];
         }
 
-        $this->visitor->endElement($name);
+        $this->visitor->endElement($this->applyUserPrefix($name, ":"));
     }
 
     /**
@@ -226,6 +283,42 @@ class Parser extends Visitor
     }
 
     /**
+     * Map namespace prefix defined in XML (by xmlns-attribute) to a user-defined prefix.
+     *
+     * For example, `a:foo`, where `a` resolves to `http://foo/`, and a user-defined alias has been
+     * defined for that URI as `b`, the resolved name is `b_foo` - e.g. suitable for parameter injection.
+     *
+     * @param string $name
+     * @param string $separator
+     *
+     * @return string
+     */
+    private function applyUserPrefix($name, $separator = "_")
+    {
+        $pos = strpos($name, ":");
+
+        if ($pos === false) {
+            return $name; // name isn't namespaced
+        }
+
+        $prefix = substr($name, 0, $pos);
+
+        if (empty($this->ns_uri[$prefix])) {
+            return $name; // TODO QA: throw for undefined namespace in file?
+        }
+
+        $uri = $this->ns_uri[$prefix][count($this->ns_uri[$prefix]) - 1];
+
+        if (!isset($this->ns_prefix[$uri])) {
+            return $name; // TODO QA: throw for namespace with no user-defined alias?
+        }
+
+        $user_prefix = $this->ns_prefix[$uri];
+
+        return "{$user_prefix}{$separator}" . substr($name, $pos + 1);
+    }
+
+    /**
      * Flush any buffered text node content to the current visitor.
      *
      * @return void
@@ -233,7 +326,8 @@ class Parser extends Visitor
     private function _flushBuffer()
     {
         if ($this->trim_text) {
-            $this->_buffer = trim($this->_buffer);
+            $this->_buffer = preg_replace('/^\s+/u', '',  $this->_buffer);
+            $this->_buffer = preg_replace('/\s+$/u', '',  $this->_buffer);
         }
 
         if ($this->_buffer === '') {

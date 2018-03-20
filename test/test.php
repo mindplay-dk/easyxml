@@ -392,6 +392,41 @@ test(
     }
 );
 
+test(
+    'Parsing Namespaced XML Document',
+    function () {
+        $parser = new Parser();
+
+        $parser->setPrefix("http://a/", "a");
+        $parser->setPrefix("http://b/", "b");
+        $parser->setPrefix("http://a/a/", "aa");
+
+        $text_aa = "";
+        $text_a = "";
+        $text_attr = "";
+
+        $parser['root/a:foo'] = function (Visitor $foo) use (&$text_a, &$text_aa, &$text_attr) {
+            $foo['b:bar/aa:foo#text'] = function ($text) use (&$text_aa) {
+                $text_aa = $text;
+            };
+
+            $foo['a:foo'] = function ($a_biff) use (&$text_a, &$text_attr) {
+                $text_attr = $a_biff;
+            };
+
+            $foo['a:foo#text'] = function ($text) use (&$text_a) {
+                $text_a = $text;
+            };
+        };
+
+        $parser->parseFile(__DIR__ . '/test-ns.xml');
+
+        eq($text_aa, "Hello AA");
+        eq($text_a, "Hello A");
+        eq($text_attr, "bam");
+    }
+);
+
 if (coverage()) {
     // stop code coverage:
 
